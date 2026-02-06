@@ -29,9 +29,8 @@ mkdir ac
 cd ac
 cmake .. -DCMAKE_PREFIX_PATH=/usr/local/mxvk -DCMAKE_INSTALL_PREFIX=/usr/local/mxvk
 make -j$(nproc)
-cd ..
+./AcidDrop -p ..
 ```
-y
 
 Liquid Acid Drop is a color-matching puzzle game where players guide falling tri-colored blocks into an 8×18 grid. Match **3 or more** blocks of the same color horizontally, vertically, or diagonally to clear them and score points. The game features GPU-accelerated fragment shader visual effects, persistent high scores, and progressively increasing difficulty.
 
