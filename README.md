@@ -7,6 +7,31 @@
 
 ## Overview
 
+To compile this you will need to compile in Vulkan support to libmx2
+
+```bash
+git clone https://github.com/lostjared/libmx2.git
+cd libmx2
+mkdir buildvk
+cd buildvk
+cmake .. -DVULKAN=ON -DOPENGL=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/mxvk
+cd buildvk
+make -j$(nproc)
+sudo make install
+```
+
+Then compile AcidDrop
+
+```bash
+git clone https://github.com/lostjared/AcidDrop.git
+cd AcidDrop
+mkdir ac
+cd ac
+cmake .. -DCMAKE_PREFIX_PATH=/usr/local/mxvk -DCMAKE_INSTALL_PREFIX=/usr/local/mxvk
+make -j$(nproc)
+```
+y
+
 Liquid Acid Drop is a color-matching puzzle game where players guide falling tri-colored blocks into an 8×18 grid. Match **3 or more** blocks of the same color horizontally, vertically, or diagonally to clear them and score points. The game features GPU-accelerated fragment shader visual effects, persistent high scores, and progressively increasing difficulty.
 
 Built entirely with **Vulkan** for rendering and **SDL2** for windowing/input, this game serves as both a playable title and a showcase for the [libmx2](https://github.com/lostjared/libmx2) engine's 2D sprite and text rendering capabilities.
