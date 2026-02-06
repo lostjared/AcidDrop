@@ -96,32 +96,20 @@ Built entirely with **Vulkan** for rendering and **SDL2** for windowing/input, t
 - **CMake** 3.10+
 - The **libmx2** library (parent project)
 
-### Build Steps
 
-```bash
-# Clone the repository
-git clone https://github.com/lostjared/libmx2.git
-cd libmx2/libmx
-
-# Configure and build (Vulkan enabled)
-mkdir build && cd build
-cmake .. -DVULKAN=ON
-make -j$(nproc)
-```
-
-The game binary `vk_2D_MasterPiece` will be produced in the build directory.
+The game binary `AcidDrop` will be produced in the build directory.
 
 ### Running
 
 ```bash
 # Run with default settings (640x480 windowed)
-./vk_2D_MasterPiece -p /path/to/vk_2D_MasterPiece
+./AcidDrop -p /path/to/vk_2D_MasterPiece
 
 # Custom resolution
-./vk_2D_MasterPiece -p /path/to/vk_2D_MasterPiece -r 1280x720
+./AcidDrop -p /path/to/vk_2D_MasterPiece -r 1280x720
 
 # Fullscreen
-./vk_2D_MasterPiece -p /path/to/vk_2D_MasterPiece -f
+./AcidDrop -p /path/to/vk_2D_MasterPiece -f
 ```
 
 The `-p` flag specifies the path to the game's resource directory (where the `data/` folder and `font.ttf` reside).
