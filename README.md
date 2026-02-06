@@ -103,13 +103,13 @@ The game binary `AcidDrop` will be produced in the build directory.
 
 ```bash
 # Run with default settings (640x480 windowed)
-./AcidDrop -p /path/to/vk_2D_MasterPiece
+./AcidDrop -p ..
 
 # Custom resolution
-./AcidDrop -p /path/to/vk_2D_MasterPiece -r 1280x720
+./AcidDrop -p .. -r 1280x720
 
 # Fullscreen
-./AcidDrop -p /path/to/vk_2D_MasterPiece -f
+./AcidDrop -p .. -f
 ```
 
 The `-p` flag specifies the path to the game's resource directory (where the `data/` folder and `font.ttf` reside).
@@ -117,7 +117,7 @@ The `-p` flag specifies the path to the game's resource directory (where the `da
 ## Project Structure
 
 ```
-vk_2D_MasterPiece/
+AcidDrop/
 ├── skeleton.cpp          # Game logic, screens, input handling, and main()
 ├── vk.hpp                # Vulkan engine header (VKWindow, VKSprite, VKText)
 ├── vk.cpp                # Vulkan engine implementation
