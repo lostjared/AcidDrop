@@ -1,5 +1,5 @@
 
-add_library(volk STATIC volk.c)
+add_library(volk STATIC volk.cpp)
 
 target_include_directories(volk PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
