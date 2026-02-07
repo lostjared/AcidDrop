@@ -543,7 +543,10 @@ public:
         printText(stream.str().c_str(), (int)(310 * scaleX), (int)(80 * scaleY) - (lastFontSize+(lastFontSize/4)), {255, 255, 255, 255});
         
         if (paused) {
-            printText("PAUSED - Press P to Continue", w/2 - 120, h/2, {255, 255, 0, 255});
+            const char* pausedText = "PAUSED - Press P to Continue";
+                        int pausedWidth, pausedHeight;
+                        getTextDimensions(pausedText, pausedWidth, pausedHeight);
+                        printText(pausedText, w/2 - pausedWidth/2, h/2, {255, 255, 0, 255});
         }
     }
     
