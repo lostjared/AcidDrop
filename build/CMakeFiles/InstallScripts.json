@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/jared/gpu/ac20/AcidDrop/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
