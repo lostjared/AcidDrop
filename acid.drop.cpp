@@ -1,5 +1,6 @@
 #include "vk.hpp"
 #include "SDL.h"
+#include "input.hpp"
 #include <random>
 #include <cmath>
 #include <sstream>
@@ -214,6 +215,15 @@ private:
     mx::VKSprite* gamebg = nullptr;
     mx::VKSprite* startScreen = nullptr;
     mx::VKSprite* introScreen = nullptr;
+
+    
+    mx::Input controller;
+    static constexpr Sint16 JOYSTICK_DEAD_ZONE = 12000;
+    Uint32 joyRepeatLeft = 0;
+    Uint32 joyRepeatRight = 0;
+    Uint32 joyRepeatDown = 0;
+    Uint32 joyRepeatUp = 0;
+    static constexpr Uint32 JOY_REPEAT_DELAY = 150;  
     
 public:
     MasterPieceWindow(const std::string& path, int wx, int wy, bool full)
@@ -288,6 +298,7 @@ public:
     }
 
     void proc() override {
+        pollController();
         switch (currentScreen) {
             case SCREEN_INTRO:
                 updateIntro();
@@ -1008,6 +1019,15 @@ public:
                 recreateSwapChain();
             }
         }
+        
+        if (controller.connectEvent(e)) {
+            mx::system_out << "Controller connected: " << controller.name()
+                           << " (index " << controller.controllerIndex() << ")\n";
+        }
+        if (e.type == SDL_CONTROLLERDEVICEREMOVED) {
+            mx::system_out << "Controller disconnected.\n";
+        }
+
         if(e.type == SDL_QUIT || (currentScreen == SCREEN_START && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
             quit();
             return;
@@ -1016,6 +1036,147 @@ public:
             gameKeypress(e.key.keysym.sym);
         } else if (e.type == SDL_TEXTINPUT) {
             handleTextInput(e.text.text);
+        }
+        
+        if (e.type == SDL_CONTROLLERBUTTONDOWN) {
+            handleControllerButton(e.cbutton.button);
+        }
+    }
+
+    
+    void handleControllerButton(Uint8 button) {
+        switch (currentScreen) {
+            case SCREEN_INTRO:
+                if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_START) {
+                    currentScreen = SCREEN_START;
+                }
+                break;
+            case SCREEN_START:
+                if (button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+                    cursorPos = (cursorPos - 1 + 5) % 5;
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+                    cursorPos = (cursorPos + 1) % 5;
+                } else if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_START) {
+                    if (cursorPos == 0) {
+                        matrix.init_matrix();
+                        applyDifficulty();
+                        matrix.block.x = GRID_WIDTH / 2;
+                        matrix.block.y = 1;
+                        matrix.block.horizontal = false;
+                        currentScreen = SCREEN_GAME;
+                    } else if (cursorPos == 1) {
+                        finalScore = 0;
+                        enteringName = false;
+                        currentScreen = SCREEN_SCORES;
+                    } else if (cursorPos == 2) {
+                        currentScreen = SCREEN_OPTIONS;
+                    } else if (cursorPos == 3) {
+                        currentScreen = SCREEN_CREDITS;
+                    } else if (cursorPos == 4) {
+                        quit();
+                    }
+                } else if (button == SDL_CONTROLLER_BUTTON_B) {
+                    quit();
+                }
+                break;
+            case SCREEN_GAME:
+                if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+                    moveBlockLeft();
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+                    moveBlockRight();
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+                    moveBlockDown();
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+                    matrix.block.color.shiftcolor(true);
+                } else if (button == SDL_CONTROLLER_BUTTON_A) {
+                    rotateBlock();
+                } else if (button == SDL_CONTROLLER_BUTTON_B) {
+                    matrix.block.color.shiftcolor(false);
+                } else if (button == SDL_CONTROLLER_BUTTON_Y) {
+                    dropBlock();
+                } else if (button == SDL_CONTROLLER_BUTTON_START) {
+                    paused = !paused;
+                } else if (button == SDL_CONTROLLER_BUTTON_BACK) {
+                    currentScreen = SCREEN_START;
+                }
+                break;
+            case SCREEN_GAMEOVER:
+                if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_START) {
+                    goToScoresScreen();
+                } else if (button == SDL_CONTROLLER_BUTTON_B) {
+                    currentScreen = SCREEN_START;
+                }
+                break;
+            case SCREEN_OPTIONS:
+                if (button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+                    optionsCursor = (optionsCursor - 1 + 2) % 2;
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+                    optionsCursor = (optionsCursor + 1) % 2;
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+                    if (optionsCursor == 0) difficultySetting = (difficultySetting - 1 + 3) % 3;
+                } else if (button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+                    if (optionsCursor == 0) difficultySetting = (difficultySetting + 1) % 3;
+                } else if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_START) {
+                    if (optionsCursor == 1) currentScreen = SCREEN_START;
+                } else if (button == SDL_CONTROLLER_BUTTON_B) {
+                    currentScreen = SCREEN_START;
+                }
+                break;
+            case SCREEN_CREDITS:
+                if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_B || button == SDL_CONTROLLER_BUTTON_START) {
+                    currentScreen = SCREEN_START;
+                }
+                break;
+            case SCREEN_SCORES:
+                if (!enteringName) {
+                    if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_B || button == SDL_CONTROLLER_BUTTON_START) {
+                        currentScreen = SCREEN_START;
+                    }
+                }
+                break;
+        }
+    }
+
+    void pollController() {
+        if (!controller.active()) return;
+        Uint32 now = SDL_GetTicks();
+
+        if (currentScreen == SCREEN_GAME && !paused) {
+            Sint16 lx = controller.getAxis(SDL_CONTROLLER_AXIS_LEFTX);
+            Sint16 ly = controller.getAxis(SDL_CONTROLLER_AXIS_LEFTY);
+
+            if (lx < -JOYSTICK_DEAD_ZONE) {
+                if (now - joyRepeatLeft > JOY_REPEAT_DELAY) {
+                    moveBlockLeft();
+                    joyRepeatLeft = now;
+                }
+            } else {
+                joyRepeatLeft = 0;
+            }
+            if (lx > JOYSTICK_DEAD_ZONE) {
+                if (now - joyRepeatRight > JOY_REPEAT_DELAY) {
+                    moveBlockRight();
+                    joyRepeatRight = now;
+                }
+            } else {
+                joyRepeatRight = 0;
+            }
+            if (ly > JOYSTICK_DEAD_ZONE) {
+                if (now - joyRepeatDown > JOY_REPEAT_DELAY) {
+                    moveBlockDown();
+                    joyRepeatDown = now;
+                }
+            } else {
+                joyRepeatDown = 0;
+            }
+            if (ly < -JOYSTICK_DEAD_ZONE) {
+                if (now - joyRepeatUp > JOY_REPEAT_DELAY) {
+                    matrix.block.color.shiftcolor(true);
+                    joyRepeatUp = now;
+                }
+            } else {
+                joyRepeatUp = 0;
+            }
         }
     }
     
