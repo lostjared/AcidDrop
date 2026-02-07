@@ -1,0 +1,4 @@
+/home/jared/gpu/ac20/AcidDrop/build/CMakeFiles/volk.dir
+/home/jared/gpu/ac20/AcidDrop/build/CMakeFiles/AcidDrop.dir
+/home/jared/gpu/ac20/AcidDrop/build/CMakeFiles/edit_cache.dir
+/home/jared/gpu/ac20/AcidDrop/build/CMakeFiles/rebuild_cache.dir
