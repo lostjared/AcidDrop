@@ -10,7 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH "/usr/local/mxvk")
 # Find required packages
 find_package(SDL2 REQUIRED)
 find_package(SDL2_ttf REQUIRED)
-find_package(SDL2_image REQUIRED)
+#find_package(SDL2_image REQUIRED)
 find_package(SDL2_mixer REQUIRED)
 find_package(Vulkan REQUIRED)
 
