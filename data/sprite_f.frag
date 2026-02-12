@@ -11,7 +11,7 @@ layout(push_constant) uniform PushConstants {
     float spritePosY;
     float spriteSizeW;
     float spriteSizeH;
-    float padding1;
+    float effectsOn;
     float padding2;
     float param0;  // waveSpeed
     float param1;  // distortion
@@ -20,6 +20,11 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 void main() {
+    // Passthrough when effects are disabled
+    if (pc.effectsOn < 0.5) {
+        outColor = texture(spriteTexture, fragTexCoord);
+        return;
+    }
     float time = pc.param3;
     
     // 1. Calculate the center of this specific sprite in screen space

@@ -11,7 +11,7 @@ layout(push_constant) uniform PushConstants {
     float spritePosY;
     float spriteSizeW;
     float spriteSizeH;
-    float padding1;
+    float effectsOn;
     float padding2;
     float param0;  // time_f
     float param1;
@@ -25,6 +25,11 @@ float pingPong(float x, float length) {
 }
 
 void main(void) {
+    // Passthrough when effects are disabled
+    if (pc.effectsOn < 0.5) {
+        outColor = texture(samp, fragTexCoord);
+        return;
+    }
     vec2 uv = fragTexCoord * 2.0 - 1.0;
     float len = length(uv);
     float time_t = pingPong(pc.param0, 10.0);

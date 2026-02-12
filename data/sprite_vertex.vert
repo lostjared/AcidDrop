@@ -12,7 +12,7 @@ layout(push_constant) uniform PushConstants {
     float spritePosY;
     float spriteSizeW;
     float spriteSizeH;
-    float padding1;
+    float effectsOn;
     float padding2;
     float params[4]; 
 } pc;

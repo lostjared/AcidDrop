@@ -12,7 +12,7 @@ layout(push_constant) uniform PushConstants {
     float spritePosY;
     float spriteSizeW;
     float spriteSizeH;
-    float padding1;
+    float effectsOn;
     float padding2;
     float params[4]; 
     // Mapping:
@@ -116,6 +116,11 @@ vec2 diamondFold(vec2 uv, vec2 c, float aspect) {
 }
 
 void main() {
+    // Passthrough when effects are disabled
+    if (pc.effectsOn < 0.5) {
+        outColor = texture(samp, fragTexCoord);
+        return;
+    }
     // 1. Audio and Time normalization
     float audio = clamp(amp * 0.8 + uamp * 0.6, 0.0, 5.0);
     float audioNorm = clamp(audio * 0.5, 0.0, 2.5);

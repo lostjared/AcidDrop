@@ -189,34 +189,23 @@ private:
     Uint32 lastTick = 0;
     int cursorPos = 0;
     bool paused = false;
-    
-    
     int optionsCursor = 0;
     int difficultySetting = 1;    
-    
-    
+    bool shaderEffectsEnabled = true;
     bool enteringName = false;
     std::string playerName;
     int finalScore = 0;
     mx::VKSprite* scoresBackground = nullptr;
     mx::VKSprite* creditScreen = nullptr;
     int matchBonus = 0;
-    
-    
     int lastFontSize = 0;
-    
-    
     bool flashActive = false;
     Uint32 flashStartTime = 0;
     bool flashGrid[GRID_WIDTH][GRID_HEIGHT] = {{false}};
-    
-    
     std::vector<mx::VKSprite*> grid_blocks;
     mx::VKSprite* gamebg = nullptr;
     mx::VKSprite* startScreen = nullptr;
     mx::VKSprite* introScreen = nullptr;
-
-    
     mx::Input controller;
     static constexpr Sint16 JOYSTICK_DEAD_ZONE = 12000;
     Uint32 joyRepeatLeft = 0;
@@ -224,7 +213,6 @@ private:
     Uint32 joyRepeatDown = 0;
     Uint32 joyRepeatUp = 0;
     static constexpr Uint32 JOY_REPEAT_DELAY = 150;  
-    
 public:
     MasterPieceWindow(const std::string& path, int wx, int wy, bool full)
         : mx::VKWindow("-[ Acid Drop - Vulkan ]-", wx, wy, full) {
@@ -265,6 +253,7 @@ public:
         for (int i = 0; i < BLOCK_COUNT; i++) {
             grid_blocks.push_back(createSprite(util.path + "/data/" + blockFiles[i], util.path + "/data/sprite_vert.spv", util.path + "/data/sprite_frag.spv"));
         }
+        applyShaderEffectsToggle();
     }
     
     void updateFontSize() {
@@ -274,6 +263,17 @@ public:
             lastFontSize = fontSize;
             setFont("font.ttf", fontSize);
             clearTextQueue();
+        }
+    }
+
+    void applyShaderEffectsToggle() {
+        if (gamebg) gamebg->setEffectsEnabled(shaderEffectsEnabled);
+        if (introScreen) introScreen->setEffectsEnabled(shaderEffectsEnabled);
+        if (startScreen) startScreen->setEffectsEnabled(shaderEffectsEnabled);
+        if (creditScreen) creditScreen->setEffectsEnabled(shaderEffectsEnabled);
+        if (scoresBackground) scoresBackground->setEffectsEnabled(shaderEffectsEnabled);
+        for (auto* block : grid_blocks) {
+            if (block) block->setEffectsEnabled(shaderEffectsEnabled);
         }
     }
     
@@ -422,13 +422,23 @@ public:
         }
         
         
-        const char* backText = "Back";
-        SDL_Color backColor = (optionsCursor == 1) ? SDL_Color{255, 255, 0, 255} : SDL_Color{255, 255, 255, 255};
-        printText(backText, centerX(backText), optStartY + spacing, backColor);
+        std::string fxText = std::string("< Shader Effects: ") + (shaderEffectsEnabled ? "On" : "Off") + " >";
+        SDL_Color fxColor = (optionsCursor == 1) ? SDL_Color{255, 255, 0, 255} : SDL_Color{255, 255, 255, 255};
+        printText(fxText.c_str(), centerX(fxText.c_str()), optStartY + spacing, fxColor);
         if (optionsCursor == 1) {
+            int fxWidth, fxHeight;
+            getTextDimensions(fxText.c_str(), fxWidth, fxHeight);
+            printText(">>", w/2 - fxWidth/2 - scaleY(30), optStartY + spacing, {255, 255, 0, 255});
+        }
+        
+        
+        const char* backText = "Back";
+        SDL_Color backColor = (optionsCursor == 2) ? SDL_Color{255, 255, 0, 255} : SDL_Color{255, 255, 255, 255};
+        printText(backText, centerX(backText), optStartY + spacing * 2, backColor);
+        if (optionsCursor == 2) {
             int backWidth, backHeight;
             getTextDimensions(backText, backWidth, backHeight);
-            printText(">>", w/2 - backWidth/2 - scaleY(30), optStartY + spacing, {255, 255, 0, 255});
+            printText(">>", w/2 - backWidth/2 - scaleY(30), optStartY + spacing * 2, {255, 255, 0, 255});
         }
         
         const char* instructions = "UP/DOWN: Select  LEFT/RIGHT: Change  ENTER: Confirm";
@@ -1112,15 +1122,17 @@ public:
                 break;
             case SCREEN_OPTIONS:
                 if (button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
-                    optionsCursor = (optionsCursor - 1 + 2) % 2;
+                    optionsCursor = (optionsCursor - 1 + 3) % 3;
                 } else if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-                    optionsCursor = (optionsCursor + 1) % 2;
+                    optionsCursor = (optionsCursor + 1) % 3;
                 } else if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
                     if (optionsCursor == 0) difficultySetting = (difficultySetting - 1 + 3) % 3;
+                    if (optionsCursor == 1) { shaderEffectsEnabled = !shaderEffectsEnabled; applyShaderEffectsToggle(); }
                 } else if (button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
                     if (optionsCursor == 0) difficultySetting = (difficultySetting + 1) % 3;
+                    if (optionsCursor == 1) { shaderEffectsEnabled = !shaderEffectsEnabled; applyShaderEffectsToggle(); }
                 } else if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_START) {
-                    if (optionsCursor == 1) currentScreen = SCREEN_START;
+                    if (optionsCursor == 2) currentScreen = SCREEN_START;
                 } else if (button == SDL_CONTROLLER_BUTTON_B) {
                     currentScreen = SCREEN_START;
                 }
@@ -1244,19 +1256,25 @@ public:
                 break;
             case SCREEN_OPTIONS:
                 if (key == SDLK_UP) {
-                    optionsCursor = (optionsCursor - 1 + 2) % 2;
+                    optionsCursor = (optionsCursor - 1 + 3) % 3;
                 } else if (key == SDLK_DOWN) {
-                    optionsCursor = (optionsCursor + 1) % 2;
+                    optionsCursor = (optionsCursor + 1) % 3;
                 } else if (key == SDLK_LEFT) {
                     if (optionsCursor == 0) {
                         difficultySetting = (difficultySetting - 1 + 3) % 3;
+                    } else if (optionsCursor == 1) {
+                        shaderEffectsEnabled = !shaderEffectsEnabled;
+                        applyShaderEffectsToggle();
                     }
                 } else if (key == SDLK_RIGHT) {
                     if (optionsCursor == 0) {
                         difficultySetting = (difficultySetting + 1) % 3;
+                    } else if (optionsCursor == 1) {
+                        shaderEffectsEnabled = !shaderEffectsEnabled;
+                        applyShaderEffectsToggle();
                     }
                 } else if (key == SDLK_RETURN) {
-                    if (optionsCursor == 1) {
+                    if (optionsCursor == 2) {
                         currentScreen = SCREEN_START;
                     }
                 }

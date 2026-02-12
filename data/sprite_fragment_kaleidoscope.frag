@@ -12,7 +12,7 @@ layout(push_constant) uniform PushConstants {
     float spritePosY;
     float spriteSizeW;
     float spriteSizeH;
-    float padding1;
+    float effectsOn;
     float padding2;
     float param0;  // time_f
     float param1;  // mouseX
@@ -96,6 +96,11 @@ vec2 diamondFold(vec2 uv, vec2 c, float aspect) {
 }
 
 void main(void) {
+    // Passthrough when effects are disabled
+    if (pc.effectsOn < 0.5) {
+        outColor = texture(samp, fragTexCoord);
+        return;
+    }
     vec2 iResolution = vec2(pc.screenWidth, pc.screenHeight);
     float time_f = pc.param0 * 0.6;
     vec4 iMouse = vec4(pc.param1, pc.param2, pc.param3, 0.0);
