@@ -102,7 +102,7 @@ The game binary `AcidDrop` will be produced in the build directory.
 ### Running
 
 ```bash
-# Run with default settings (640x480 windowed)
+# Run with default settings (1280x720 windowed)
 ./AcidDrop -p ..
 
 # Custom resolution
