@@ -20,6 +20,8 @@ constexpr int BLOCK_SPACING = 1;
 constexpr int NEXT_PANEL_X = 450;
 constexpr int NEXT_PANEL_Y = 180;
 constexpr int FLASH_DURATION = 300; 
+constexpr int SHADER_LEVEL_LINES = 10;
+constexpr int SHADER_LEVEL_COUNT = 4;
 
 
 enum {
@@ -203,7 +205,8 @@ private:
     Uint32 flashStartTime = 0;
     bool flashGrid[GRID_WIDTH][GRID_HEIGHT] = {{false}};
     std::vector<mx::VKSprite*> grid_blocks;
-    mx::VKSprite* gamebg = nullptr;
+    mx::VKSprite* gamebg[SHADER_LEVEL_COUNT] = {nullptr};
+    int shaderLevel = 0;
     mx::VKSprite* startScreen = nullptr;
     mx::VKSprite* introScreen = nullptr;
     mx::Input controller;
@@ -239,7 +242,15 @@ public:
     void initGfx() {
         std::string vertShader = util.path + "/data/sprite_vert.spv";
         std::string fragShader = util.path + "/data/sprite_kaleidoscope.spv";
-        gamebg = createSprite(util.path + "/data/gamebg.png", util.path + "/data/sprite_vert.spv", fragShader);
+        const char* fragShaders[SHADER_LEVEL_COUNT] = {
+            "sprite_kaleidoscope.spv",
+            "sprite_kaleidoscope2.spv",
+            "sprite_kaleidoscope3.spv",
+            "sprite_kaleidoscope4.spv"
+        };
+        for (int i = 0; i < SHADER_LEVEL_COUNT; i++) {
+            gamebg[i] = createSprite(util.path + "/data/gamebg.png", vertShader, util.path + "/data/" + fragShaders[i]);
+        }
         introScreen = createSprite(util.path + "/data/intro.png", util.path + "/data/sprite_vert.spv", util.path + "/data/sprite_bubble.spv");
         startScreen = createSprite(util.path + "/data/universe.png", util.path + "/data/sprite_vert.spv", fragShader);
         creditScreen = createSprite(util.path + "/data/logo.png", util.path + "/data/sprite_vert.spv", util.path + "/data/sprite_time.spv");
@@ -267,7 +278,9 @@ public:
     }
 
     void applyShaderEffectsToggle() {
-        if (gamebg) gamebg->setEffectsEnabled(shaderEffectsEnabled);
+        for (int i = 0; i < SHADER_LEVEL_COUNT; i++) {
+            if (gamebg[i]) gamebg[i]->setEffectsEnabled(shaderEffectsEnabled);
+        }
         if (introScreen) introScreen->setEffectsEnabled(shaderEffectsEnabled);
         if (startScreen) startScreen->setEffectsEnabled(shaderEffectsEnabled);
         if (creditScreen) creditScreen->setEffectsEnabled(shaderEffectsEnabled);
@@ -366,10 +379,10 @@ public:
     }
     
     void updateGameOver() {
-        if (gamebg) {
+        if (gamebg[shaderLevel]) {
             float time_f = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-            gamebg->setShaderParams(time_f, 0.0f, 0.0f, 0.0f);
-            gamebg->drawSpriteRect(0, 0, w, h);
+            gamebg[shaderLevel]->setShaderParams(time_f, 0.0f, 0.0f, 0.0f);
+            gamebg[shaderLevel]->drawSpriteRect(0, 0, w, h);
         }
         
         const char* gameOverText = "GAME OVER!";
@@ -526,10 +539,10 @@ public:
     void drawGame() {
         float scaleX = (float)w / 640.0f;
         float scaleY = (float)h / 480.0f;
-        if (gamebg) {
+        if (gamebg[shaderLevel]) {
             float time_f = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-            gamebg->setShaderParams(time_f, 0.0f, 0.0f, 0.0f);
-            gamebg->drawSpriteRect(0, 0, w, h);
+            gamebg[shaderLevel]->setShaderParams(time_f, 0.0f, 0.0f, 0.0f);
+            gamebg[shaderLevel]->drawSpriteRect(0, 0, w, h);
         }
         drawmatrix(scaleX, scaleY);
         drawblock(scaleX, scaleY);
@@ -898,16 +911,16 @@ public:
                 }
             }
         }
-        
         matrix.Game.score += matchBonus;
         matchBonus = 0;
-        
+        int newLevel = matrix.Game.lines / SHADER_LEVEL_LINES;
+        if (newLevel >= SHADER_LEVEL_COUNT) newLevel = SHADER_LEVEL_COUNT - 1;
+        if (newLevel != shaderLevel) {
+            shaderLevel = newLevel;
+            mx::system_out << "level increased to: " << shaderLevel << std::endl;
+        }
         memset(flashGrid, false, sizeof(flashGrid));
-        
-        
         spawnNewBlock();
-        
-        
         if (checkGameOver()) {
             currentScreen = SCREEN_GAMEOVER;
         }
@@ -1062,6 +1075,7 @@ public:
                 } else if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_START) {
                     if (cursorPos == 0) {
                         matrix.init_matrix();
+                        shaderLevel = 0;
                         applyDifficulty();
                         matrix.block.x = GRID_WIDTH / 2;
                         matrix.block.y = 1;
@@ -1200,6 +1214,7 @@ public:
                 } else if (key == SDLK_RETURN) {
                     if (cursorPos == 0) {  
                         matrix.init_matrix();
+                        shaderLevel = 0;
                         applyDifficulty();
                         matrix.block.x = GRID_WIDTH / 2;
                         matrix.block.y = 1;
@@ -1233,6 +1248,11 @@ public:
                     matrix.block.color.shiftcolor(false);
                 } else if (key == SDLK_p) {
                     paused = !paused;
+                } else if (key == SDLK_l) {
+                    /*if (shaderLevel < SHADER_LEVEL_COUNT - 1) {
+                        shaderLevel++;
+                        mx::system_out << "level increased to: " << shaderLevel << std::endl;
+                    }*/
                 } else if (key == SDLK_ESCAPE) {
                     currentScreen = SCREEN_START;
                 }
