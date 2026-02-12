@@ -451,19 +451,9 @@ public:
             creditScreen->setShaderParams(time_f, 0.0f, 0.0f, 0.0f);
             creditScreen->drawSpriteRect(0, 0, w, h);
         }
-        
-        int titleY = scaleY(100);
-        int contentY = scaleY(180);
-        int spacing = getMenuSpacing();
-        
-        const char* credTitle = "CREDITS";
-        const char* cred1 = "Acid Drop Clone";
-        const char* cred2 = "MX2 Engine by Jared Bruni";
+
         const char* credReturn = "Press Return to return";
-        printText(credTitle, centerX(credTitle), titleY, {255, 255, 0, 255});
-        printText(cred1, centerX(cred1), contentY, {255, 255, 255, 255});
-        printText(cred2, centerX(cred2), contentY + spacing, {255, 255, 255, 255});
-        printText(credReturn, centerX(credReturn), scaleY(320), {255, 255, 0, 255});
+        printText(credReturn, centerX(credReturn), scaleY(360), {255, 255, 0, 255});
     }
     
     void updateScores() {
