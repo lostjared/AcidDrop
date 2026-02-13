@@ -1,4 +1,4 @@
-#include "vk.hpp"
+#include <vk.hpp>
 #include "SDL.h"
 #include "input.hpp"
 #include <random>
@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <climits>
 #include "argz.hpp"
-
+#include "loadpng.hpp"
 
 constexpr int STARTX = 184;      
 constexpr int STARTY = 61;       
@@ -222,6 +222,14 @@ public:
         setPath(path);
         updateFontSize();
         srand((unsigned int)time(0));
+        std::string ico_path = path + "data/icon.png";
+        SDL_Surface *ico = png::LoadPNG(ico_path.c_str());
+        if(!ico) {
+            std::cerr << "Error loading icon.\n";
+        } else {
+            SDL_SetWindowIcon(window, ico);
+            SDL_FreeSurface(ico);
+        }
         lastTick = SDL_GetTicks();
     }
     
