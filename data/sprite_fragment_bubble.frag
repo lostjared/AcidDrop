@@ -19,9 +19,33 @@ layout(push_constant) uniform PushConstants {
     float param3;
 } pc;
 
-float pingPong(float x, float length) {
-    float modVal = mod(x, length * 2.0);
-    return modVal <= length ? modVal : length * 2.0 - modVal;
+#define PI 3.14159265359
+#define TAU 6.28318530718
+
+mat2 rotate(float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat2(c, -s, s, c);
+}
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec2 waveDistort(vec2 uv, float intensity) {
+    vec2 d = vec2(0.0);
+    d.x = intensity * sin(uv.y * 5.0 + pc.param0 * 2.0) * cos(uv.x * 3.0 + pc.param0);
+    d.y = intensity * cos(uv.x * 4.0 + pc.param0 * 1.5) * sin(uv.y * 2.0 + pc.param0);
+    return uv + d * 0.1;
+}
+
+vec3 chromaticAberration(sampler2D tex, vec2 uv, float amount) {
+    float r = texture(tex, uv + vec2(amount, 0.0)).r;
+    float g = texture(tex, uv).g;
+    float b = texture(tex, uv - vec2(amount, 0.0)).b;
+    return vec3(r, g, b);
 }
 
 void main(void) {
@@ -30,16 +54,43 @@ void main(void) {
         outColor = texture(samp, fragTexCoord);
         return;
     }
-    vec2 uv = fragTexCoord * 2.0 - 1.0;
-    float len = length(uv);
-    float time_t = pingPong(pc.param0, 10.0);
-    float bubble = smoothstep(0.8, 1.0, 1.0 - len);
-    bubble = sin(bubble * time_t);
+
+    // Resolution
+    vec2 iResolution = vec2(pc.screenWidth, pc.screenHeight);
     
-    vec2 distort = uv * (1.0 + 0.1 * sin(pc.param0 + len * 20.0));
+    // Normalized pixel coordinates
+    vec2 uv = fragTexCoord;
     
-    distort = sin(distort * time_t);
+    // Create dynamic wave distortion
+    vec2 distortedUV = waveDistort(uv, 1.0 + sin(pc.param0 * 0.5));
     
-    vec4 texColor = texture(samp, distort * 0.5 + 0.5);
-    outColor = mix(texColor, vec4(1.0, 1.0, 1.0, 1.0), bubble);
+    // Add rotating distortion
+    distortedUV -= vec2(0.5);
+    distortedUV *= rotate(pc.param0 * 0.3);
+    distortedUV += vec2(0.5);
+    
+    // Get base texture color with chromatic aberration
+    vec3 texColor = chromaticAberration(samp, distortedUV, 0.005 * (1.0 + sin(pc.param0)));
+    
+    // Create color phase shift
+    float hueShift = 0.5 * sin(pc.param0 * 0.3) + 0.5 * sin(uv.x * 10.0 + pc.param0);
+    vec3 rainbow = hsv2rgb(vec3(fract(pc.param0 * 0.1 + uv.x * 0.5 + uv.y * 0.3), 0.8, 0.6));
+    
+    // Create pulsing wave pattern
+    float wave = 0.5 + 0.5 * sin(uv.x * 20.0 + pc.param0 * 5.0) * 
+                        cos(uv.y * 15.0 + pc.param0 * 4.0);
+    
+    // Combine texture with color effects
+    vec3 finalColor = texColor * (1.0 + wave * 0.5) + rainbow * wave * 0.3;
+    
+    // Add scanline effect
+    float scanline = 0.9 + 0.1 * sin(uv.y * iResolution.y * 1.5 + pc.param0 * 10.0);
+    finalColor *= scanline;
+    
+    // Add vignette
+    vec2 vigUV = uv * (1.0 - uv) * 2.0;
+    float vignette = pow(vigUV.x * vigUV.y * 15.0, 0.3);
+    finalColor *= vignette;
+    
+    outColor = vec4(finalColor, 1.0);
 }
