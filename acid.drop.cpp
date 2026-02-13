@@ -222,7 +222,11 @@ public:
         setPath(path);
         updateFontSize();
         srand((unsigned int)time(0));
-        std::string ico_path = path + "data/icon.png";
+        std::string ico_path = path;
+        if (!ico_path.empty() && ico_path.back() != '/' && ico_path.back() != '\\') {
+            ico_path += "/";
+        }
+        ico_path += "data/icon.png";
         SDL_Surface *ico = png::LoadPNG(ico_path.c_str());
         if(!ico) {
             std::cerr << "Error loading icon.\n";
