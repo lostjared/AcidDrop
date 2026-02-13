@@ -343,10 +343,8 @@ public:
             introScreen->setShaderParams(time_f, 1.0f, 0.8f, 1.2f);
             introScreen->drawSpriteRect(0, 0, w, h);
         }
-        const char* introText = "Press ENTER to Start";
-        printText(introText, centerX(introText), h/2, {255, 255, 255, 255});
         Uint32 currentTick = SDL_GetTicks();
-        if (currentTick - lastTick > 3000) {
+        if (currentTick - lastTick > 5000) {
             currentScreen = SCREEN_START;
             lastTick = currentTick;
         }
