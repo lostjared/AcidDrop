@@ -11,10 +11,11 @@ if(MINGW)
     set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
     add_compile_options(-Wno-narrowing)
     add_link_options(-mwindows)
+    
 endif()
 
 # Set prefix path if libmx2 is installed in custom location
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/mxvk")
+list(APPEND CMAKE_PREFIX_PATH "/usr/local")
 
 # Find required packages
 find_package(SDL2 REQUIRED)
@@ -28,9 +29,6 @@ endif()
 # Find installed libmx2
 find_package(libmx2 REQUIRED)
 
-# Set volk path
-set(VOLK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/volk" CACHE PATH "Path to volk directory")
-
 # Check if we're on macOS with MoltenVK
 if(APPLE)
     set(MOLTEN ON)
@@ -38,34 +36,25 @@ if(APPLE)
     set(MOLTEN_FRAMEWORKS "-framework Cocoa -framework IOKit -framework QuartzCore")
 endif()
 
-# Build or find volk (if not on macOS and not MinGW cross-compiling)
-if(NOT MOLTEN AND NOT MINGW)
-    if(EXISTS "${VOLK_DIR}/volk.cpp")
-        add_library(volk STATIC ${VOLK_DIR}/volk.cpp)
-        target_include_directories(volk PUBLIC ${VOLK_DIR})
-        target_link_libraries(volk PUBLIC ${CMAKE_DL_LIBS})
-    else()
-        message(WARNING "volk not found at ${VOLK_DIR}, will try to link against installed version")
-        find_library(VOLK_LIB volk REQUIRED)
-    endif()
-endif()
-
 # Create executable
 if(MINGW)
-    add_executable(AcidDrop WIN32 acid.drop.cpp vk.cpp)
+    # Windows icon resource
+    set(WIN_RC "${CMAKE_CURRENT_SOURCE_DIR}/icon.rc")
+    add_executable(AcidDrop WIN32 acid.drop.cpp ${WIN_RC})
 else()
-    add_executable(AcidDrop acid.drop.cpp vk.cpp)
+    add_executable(AcidDrop acid.drop.cpp)
 endif()
 
-# Set include directories
-target_include_directories(AcidDrop PRIVATE 
-    ${VOLK_DIR}
+# Set include directories (use installed libmx2 headers)
+target_include_directories(AcidDrop PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include/mx2
 )
 
 # Link libraries
 if(MINGW)
     target_link_libraries(AcidDrop PRIVATE
         SDL2::SDL2main
+        libmx2::mx
         libmx2::mxvk
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
@@ -76,6 +65,7 @@ elseif(MOLTEN)
     target_link_libraries(AcidDrop PRIVATE ${MOLTEN_FRAMEWORKS})
     target_link_libraries(AcidDrop PRIVATE 
         libmx2::mx
+        libmx2::mxvk
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
         SDL2_mixer::SDL2_mixer
@@ -85,7 +75,7 @@ elseif(MOLTEN)
 else()
     target_link_libraries(AcidDrop PRIVATE 
         libmx2::mx
-        volk
+        libmx2::mxvk
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
         SDL2_mixer::SDL2_mixer
