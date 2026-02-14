@@ -538,7 +538,7 @@ public:
             std::string displayName = playerName + "_";
             printText(displayName.c_str(), centerX(displayName.c_str()), entryY, {0, 255, 255, 255});
             
-            const char* instructions = "Type name, ENTER to confirm, BACKSPACE to delete";
+            const char* instructions = "Type name, ENTER to confirm, BACKSPACE to delete or Escape/Back";
             printText(instructions, centerX(instructions), entryY + lineHeight, {200, 200, 200, 255});
         } else {
             const char* returnText = "Press ENTER to return to menu";
@@ -1161,6 +1161,9 @@ public:
                     if (button == SDL_CONTROLLER_BUTTON_A || button == SDL_CONTROLLER_BUTTON_B || button == SDL_CONTROLLER_BUTTON_START) {
                         currentScreen = SCREEN_START;
                     }
+                } else if(enteringName) {
+                    if(button == SDL_CONTROLLER_BUTTON_BACK)
+                        currentScreen = SCREEN_START;
                 }
                 break;
         }
@@ -1313,7 +1316,6 @@ public:
                     } else if (key == SDLK_BACKSPACE && !playerName.empty()) {
                         playerName.pop_back();
                     } else if (key == SDLK_ESCAPE) {
-                        
                         enteringName = false;
                     }
                 } else {
