@@ -36,7 +36,25 @@ find_package(libmx2 REQUIRED)
 message(STATUS "")
 message(STATUS "=========== Dependency / Header Check ===========")
 
-set(_mx2_inc "${CMAKE_INSTALL_PREFIX}/include/mx2")
+# Derive the actual libmx2 include directory from the imported target so that
+# checks work for both native and cross-compilation (MINGW) builds.
+if(TARGET libmx2::mx)
+    get_target_property(_mx2_iface_dirs libmx2::mx INTERFACE_INCLUDE_DIRECTORIES)
+    # Pick the first directory that contains mx.hpp
+    set(_mx2_inc "")
+    foreach(_d ${_mx2_iface_dirs})
+        if(EXISTS "${_d}/mx.hpp")
+            set(_mx2_inc "${_d}")
+            break()
+        endif()
+    endforeach()
+    if(NOT _mx2_inc AND _mx2_iface_dirs)
+        list(GET _mx2_iface_dirs 0 _mx2_inc)
+    endif()
+else()
+    set(_mx2_inc "${CMAKE_INSTALL_PREFIX}/include/mx2")
+endif()
+
 set(_check_pass TRUE)
 
 # ---- libmx2 core headers (directly included by acid.drop.cpp) ----
@@ -75,8 +93,22 @@ message(STATUS "[volk] Checking volk header ...")
 if(EXISTS "${_mx2_inc}/volk/volk.h")
     message(STATUS "  [OK]   volk/volk.h")
 else()
-    message(WARNING "  [MISS] volk/volk.h")
-    set(_check_pass FALSE)
+    # Also check via the volk target's interface include dirs
+    set(_volk_found FALSE)
+    if(TARGET libmx2::volk)
+        get_target_property(_volk_dirs libmx2::volk INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(_d ${_volk_dirs})
+            if(EXISTS "${_d}/volk.h")
+                message(STATUS "  [OK]   volk.h  (${_d})")
+                set(_volk_found TRUE)
+                break()
+            endif()
+        endforeach()
+    endif()
+    if(NOT _volk_found)
+        message(WARNING "  [MISS] volk/volk.h")
+        set(_check_pass FALSE)
+    endif()
 endif()
 
 # ---- SDL2 headers ----
@@ -143,20 +175,35 @@ else()
     message(STATUS "  [SKIP] MINGW build – Vulkan loaded at runtime via volk")
 endif()
 
-# ---- libmx2 library files ----
+# ---- libmx2 library files (verified via imported target locations) ----
 message(STATUS "")
 message(STATUS "[libmx2] Checking library files ...")
-set(_mx2_libs
-    "${CMAKE_INSTALL_PREFIX}/lib/libmx.so"
-    "${CMAKE_INSTALL_PREFIX}/lib/libmxvk.a"
-    "${CMAKE_INSTALL_PREFIX}/lib/libvolk.a"
-)
-foreach(_lib ${_mx2_libs})
-    if(EXISTS "${_lib}")
-        get_filename_component(_name "${_lib}" NAME)
-        message(STATUS "  [OK]   ${_name}  (${_lib})")
+set(_mx2_lib_targets libmx2::mx libmx2::mxvk)
+if(NOT MINGW)
+    list(APPEND _mx2_lib_targets libmx2::volk)
+endif()
+foreach(_tgt ${_mx2_lib_targets})
+    if(TARGET ${_tgt})
+        # Try IMPORTED_LOCATION first, then the config-specific variant
+        get_target_property(_loc ${_tgt} IMPORTED_LOCATION)
+        if(NOT _loc)
+            get_target_property(_loc ${_tgt} IMPORTED_LOCATION_RELEASE)
+        endif()
+        if(NOT _loc)
+            get_target_property(_loc ${_tgt} IMPORTED_LOCATION_DEBUG)
+        endif()
+        if(_loc AND EXISTS "${_loc}")
+            get_filename_component(_name "${_loc}" NAME)
+            message(STATUS "  [OK]   ${_name}  (${_loc})")
+        elseif(_loc)
+            get_filename_component(_name "${_loc}" NAME)
+            message(WARNING "  [MISS] ${_name}  (expected at ${_loc})")
+            set(_check_pass FALSE)
+        else()
+            message(STATUS "  [OK]   ${_tgt}  (target exists, location deferred)")
+        endif()
     else()
-        message(WARNING "  [MISS] ${_lib}")
+        message(WARNING "  [MISS] ${_tgt} target not found")
         set(_check_pass FALSE)
     endif()
 endforeach()
@@ -164,17 +211,21 @@ endforeach()
 # ---- libmx2 CMake config ----
 message(STATUS "")
 message(STATUS "[libmx2] Checking CMake package config ...")
-if(EXISTS "${CMAKE_INSTALL_PREFIX}/lib/cmake/libmx2/libmx2Config.cmake")
-    message(STATUS "  [OK]   libmx2Config.cmake")
+if(libmx2_DIR)
+    message(STATUS "  [OK]   libmx2Config  (${libmx2_DIR})")
 else()
-    message(WARNING "  [MISS] libmx2Config.cmake")
+    message(WARNING "  [MISS] libmx2 cmake config directory unknown")
     set(_check_pass FALSE)
 endif()
 
-# ---- SDL2 libraries ----
+# ---- SDL2 imported targets ----
 message(STATUS "")
-message(STATUS "[SDL2] Checking SDL2 libraries ...")
-foreach(_tgt SDL2::SDL2 SDL2_ttf::SDL2_ttf SDL2_mixer::SDL2_mixer)
+message(STATUS "[SDL2] Checking SDL2 library targets ...")
+set(_sdl2_required_targets SDL2::SDL2 SDL2_ttf::SDL2_ttf SDL2_mixer::SDL2_mixer)
+if(MINGW)
+    list(APPEND _sdl2_required_targets SDL2::SDL2main)
+endif()
+foreach(_tgt ${_sdl2_required_targets})
     if(TARGET ${_tgt})
         message(STATUS "  [OK]   ${_tgt}")
     else()
@@ -186,7 +237,13 @@ endforeach()
 # ---- libmx2 imported targets ----
 message(STATUS "")
 message(STATUS "[libmx2] Checking imported targets ...")
-foreach(_tgt libmx2::mx libmx2::mxvk libmx2::volk)
+set(_mx2_required_targets libmx2::mx libmx2::mxvk)
+if(NOT MINGW)
+    # volk is a separate target only on non-MINGW builds;
+    # on MINGW it is compiled into libmxvk directly.
+    list(APPEND _mx2_required_targets libmx2::volk)
+endif()
+foreach(_tgt ${_mx2_required_targets})
     if(TARGET ${_tgt})
         message(STATUS "  [OK]   ${_tgt}")
     else()
@@ -291,13 +348,72 @@ set_target_properties(AcidDrop PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
-# Copy data assets next to the executable so the game finds them at runtime
+# Copy only the files actually used by acid.drop.cpp to the build data dir.
+# This is an explicit whitelist derived from the source code.
+set(_used_data_files
+    # SPV shaders (referenced in acid.drop.cpp)
+    sprite_vert.spv
+    sprite_frag.spv
+    sprite_kaleidoscope.spv
+    sprite_kaleidoscope2.spv
+    sprite_kaleidoscope3.spv
+    sprite_kaleidoscope4.spv
+    sprite_bubble.spv
+    sprite_time.spv
+    vert.spv
+    frag.spv
+    text_vert.spv
+    text_frag.spv
+    # PNG images
+    icon.png
+    gamebg.png
+    intro.png
+    universe.png
+    logo.png
+    bg.png
+    block_black.png
+    block_yellow.png
+    block_orange.png
+    block_ltblue.png
+    block_dblue.png
+    block_purple.png
+    block_pink.png
+    block_gray.png
+    block_red.png
+    block_green.png
+    block_clear.png
+    # Font
+    font.ttf
+)
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data")
+    set(_data_src "${CMAKE_CURRENT_SOURCE_DIR}/data")
+    set(_data_dst "$<TARGET_FILE_DIR:AcidDrop>/data")
+
     add_custom_command(TARGET AcidDrop POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/data"
-            "$<TARGET_FILE_DIR:AcidDrop>/data"
-        COMMENT "Copying data directory to build output"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_data_dst}"
+        COMMENT "Preparing data directory"
+    )
+
+    foreach(_file ${_used_data_files})
+        if(EXISTS "${_data_src}/${_file}")
+            add_custom_command(TARGET AcidDrop POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${_data_src}/${_file}" "${_data_dst}/${_file}"
+            )
+        else()
+            message(WARNING "Required data file not found: data/${_file}")
+        endif()
+    endforeach()
+endif()
+
+# Copy font.ttf next to the executable (one level above data/)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/font.ttf")
+    add_custom_command(TARGET AcidDrop POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/font.ttf"
+            "$<TARGET_FILE_DIR:AcidDrop>/font.ttf"
+        COMMENT "Copying font.ttf to build output"
     )
 endif()
 
