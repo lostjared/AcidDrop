@@ -502,7 +502,7 @@ public:
             stream << (i + 1) << ". " << scoreList[i].name << "  " << scoreList[i].score;
             std::string scoreStr = stream.str();
             
-            SDL_Color color = {255, 255, 255, 255};
+            SDL_Color color = {255, 0, 150, 255};
             
             if (enteringName && finalScore > 0) {
                 
@@ -539,10 +539,10 @@ public:
             printText(displayName.c_str(), centerX(displayName.c_str()), entryY, {0, 255, 255, 255});
             
             const char* instructions = "Type name, ENTER to confirm, BACKSPACE to delete or Escape/Back";
-            printText(instructions, centerX(instructions), entryY + lineHeight, {200, 200, 200, 255});
+            printText(instructions, centerX(instructions), entryY + lineHeight, {200, 0, 150, 255});
         } else {
             const char* returnText = "Press ENTER to return to menu";
-            printText(returnText, centerX(returnText), scaleY(440), {255, 255, 0, 255});
+            printText(returnText, centerX(returnText), scaleY(440), {255, 0, 0, 255});
         }
     }
     
