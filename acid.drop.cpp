@@ -220,6 +220,7 @@ public:
     MasterPieceWindow(const std::string& path, int wx, int wy, bool full)
         : mx::VKWindow("-[ Acid Drop - Vulkan ]-", wx, wy, full) {
         setPath(path);
+	enableControllerInput();
         updateFontSize();
         srand((unsigned int)time(0));
         std::string ico_path = path;
