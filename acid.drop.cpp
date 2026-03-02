@@ -98,10 +98,13 @@ struct TileMatrix {
 };
 
 struct Score {
-    std::string name;
     int score;
-    Score(std::string name_, int score_) : name(name_), score(score_) {}
+    std::string name;
+    Score(std::string name_, int score_) : score(score_), name(name_) {}
     Score() : name{}, score{0} {}
+    auto operator<=>(const Score &s) const {
+        return s.score <=> score;
+    }
 };
 
 class HighScores {
@@ -112,6 +115,7 @@ public:
     ~HighScores() {
         write();
     }
+
     void addScore(const std::string &name, int score) {
         scores.push_back({name, score});
         sort();
@@ -121,9 +125,7 @@ public:
         }
     }
     void sort() {
-        std::sort(scores.begin(), scores.end(), [](const Score &one, const Score &two) {
-            return one.score > two.score;  
-        });
+        std::sort(scores.begin(), scores.end());
     }
 
     bool qualifiesForHighScore(int score) {
