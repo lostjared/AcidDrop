@@ -448,10 +448,6 @@ if(UNIX AND NOT APPLE AND NOT MINGW)
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
     )
 
-    # Desktop icon lookup uses "Icon=icon".
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/icon.png"
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/pixmaps
-    )
 endif()
 
 # ---------------------------------------------------------------------------
