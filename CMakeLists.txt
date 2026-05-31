@@ -419,6 +419,42 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/font.ttf")
 endif()
 
 # ---------------------------------------------------------------------------
+# Install rules (Linux)
+# ---------------------------------------------------------------------------
+if(UNIX AND NOT APPLE AND NOT MINGW)
+    include(GNUInstallDirs)
+
+    # Install the real game binary under libexec to avoid clashing with the
+    # wrapper script name in ${CMAKE_INSTALL_BINDIR}.
+    install(TARGETS AcidDrop
+        RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/AcidDrop
+    )
+
+    # Install game resources. The -p argument should point to this directory.
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/AcidDrop
+    )
+
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/font.ttf"
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/AcidDrop
+    )
+
+    # Install launcher script and desktop integration.
+    install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/AcidDrop"
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/AcidDrop.desktop"
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+    )
+
+    # Desktop icon lookup uses "Icon=icon".
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/icon.png"
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/pixmaps
+    )
+endif()
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 message(STATUS "----------- AcidDrop build summary -----------")
