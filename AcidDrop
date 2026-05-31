@@ -7,5 +7,5 @@ PREFIX_DIR="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
 APP_BIN="${PREFIX_DIR}/libexec/AcidDrop/AcidDrop"
 APP_RES="${PREFIX_DIR}/share/AcidDrop"
 
-exec "${APP_BIN}" -p "${APP_RES}" "$@"
+exec "${APP_BIN}" -p "${APP_RES}" -f "$@" 
 
