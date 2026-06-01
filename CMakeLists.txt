@@ -179,7 +179,7 @@ endif()
 # ---- libmx2 library files (verified via imported target locations) ----
 message(STATUS "")
 message(STATUS "[libmx2] Checking library files ...")
-set(_mx2_lib_targets libmx2::mx libmx2::mxvk)
+set(_mx2_lib_targets libmx2::mx libmx2::mx_vk)
 if(NOT MINGW)
     list(APPEND _mx2_lib_targets libmx2::volk)
 endif()
@@ -238,7 +238,7 @@ endforeach()
 # ---- libmx2 imported targets ----
 message(STATUS "")
 message(STATUS "[libmx2] Checking imported targets ...")
-set(_mx2_required_targets libmx2::mx libmx2::mxvk)
+set(_mx2_required_targets libmx2::mx libmx2::mx_vk)
 if(NOT MINGW)
     # volk is a separate target only on non-MINGW builds;
     # on MINGW it is compiled into libmxvk directly.
@@ -313,7 +313,7 @@ if(MINGW)
     target_link_libraries(AcidDrop PRIVATE
         SDL2::SDL2main
         libmx2::mx
-        libmx2::mxvk
+        libmx2::mx_vk
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
         SDL2_mixer::SDL2_mixer
@@ -323,7 +323,7 @@ elseif(MOLTEN)
     target_link_libraries(AcidDrop PRIVATE
         ${MOLTEN_FRAMEWORKS}
         libmx2::mx
-        libmx2::mxvk
+        libmx2::mx_vk
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
         SDL2_mixer::SDL2_mixer
@@ -333,7 +333,7 @@ elseif(MOLTEN)
 else()
     target_link_libraries(AcidDrop PRIVATE
         libmx2::mx
-        libmx2::mxvk
+        libmx2::mx_vk
         SDL2::SDL2
         SDL2_ttf::SDL2_ttf
         SDL2_mixer::SDL2_mixer
